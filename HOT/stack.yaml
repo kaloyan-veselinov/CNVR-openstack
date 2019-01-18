@@ -300,11 +300,3 @@ outputs:
         description: URL to reach the LBaaS
         value: { get_attr: [ LBaaS_web, ip ] }
 
-    web-group_scaleup_url:
-        description: URL para aumentar el numero de servidores web
-        value: { get_attr: [web-group_scaleup_policy, signal_url]}
-
-    web-group_scaledown_url:
-        description: URL para aumentar el numero de servidores web
-        value: { get_attr: [web-group_scaledown_policy, signal_url]}
-
