@@ -145,6 +145,7 @@ parameters:
   
         
 resources:
+    # TODO refactor net1 and net2, with only output beeing the subnet
     net1:
         type: OS::Neutron::ProviderNet
         properties:
@@ -282,9 +283,6 @@ resources:
             web_scale_avg_period: { get_param: web_scale_avg_period }
             web_scaleup_thresh: { get_param: web_scaleup_tresh }
             web_scaledown_thresh: { get_param: web_scaledown_thresh }
-
-  
-
             
 outputs:
     vm-admin_ip:

@@ -39,3 +39,4 @@ resource_registry:
     "CNVR::Server::Web": server_web.yaml
     "CNVR::Server::Admin": server_admin.yaml
     "CNVR::Server::Postgres": server_postgres.yaml
+    "CNVR::LBaaS": LBaaS_web.yaml
