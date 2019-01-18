@@ -118,6 +118,22 @@ parameters:
     vm-web_flavor:
         type: string
         description: Tipo de flavor para el servidor web
+
+    web-group_scale_cooldown:
+        type: number
+        description: Cooldown para la escabilidad de los servidores web
+
+    web_scale_avg_period:
+        type: number
+        description: Periodo para el calculo de la utilizacion de los servidores web
+
+    web_scaleup_thresh:
+        type: number
+        description: Utilizacion minima para anadir un servidor web
+
+    web_scaledown_thresh:
+        type: number
+        description: Utilizacion maxima para suprimir un servidor web    
         
 resources:
     net1:
@@ -281,19 +297,34 @@ resources:
         properties:
             min_size: { get_param: min_web_server }
             max_size: { get_param: max_web_server }
+            cooldown: { get_param: web-group_scale_cooldown }
             resource:
-                type: OS::Nova::Server
+                type: OS::CNVR::WebServer
                 properties:
                     image: { get_param: vm-web_image }
                     flavor:  { get_param: vm-web_flavor }
-                    networks:
-                        - subnet: { get_resource: subnet1 }
-                        - subnet: { get_resource: subnet2 }
-                security_groups: 
-                    - { get_resource: postgres_security_group }
-                    - { get_resource: icmp_security_group }
-                    - { get_resource: http_security_group }
-                    
+                    subnet1: { get_resource: subnet1 }
+                    subnet2: { get_resource: subnet2 }
+                    http_security_group: { get_resource: http_security_group }
+                    postgres_security_group: { get_resource: postgres_security_group }
+                    icmp_security_group: { get_resource: icmp_security_group }
+
+    web-group_scaleup_policy:
+        type: OS::Heat::ScalingPolicy
+        properties:
+            adjustment_type: change_in_capacity
+            auto_scaling_group_id: { get_resource: web-group }
+            cooldown: { get_param: web-group_scale_cooldown }
+            scaling_adjustment: 1
+
+    web-group_scaledown_policy:
+        type: OS::Heat::ScalingPolicy
+        properties:
+            adjustment_type: change_in_capacity
+            auto_scaling_group_id: { get_resource: web-group }
+            cooldown: { get_param: web-group_scale_cooldown }
+            scaling_adjustment: -1  
+
             
 outputs:
     vm-admin_ip:
@@ -303,3 +334,12 @@ outputs:
     vm-admin_private_key:
         description: Clave privada
         value: { get_attr: [vm-admin_key, private_key] }
+
+    web-group_scaleup_url:
+        description: URL para aumentar el numero de servidores web
+        value: { get_attr: [web-group_scaleup_policy, signal_url]}
+
+    web-group_scaledown_url:
+        description: URL para aumentar el numero de servidores web
+        value: { get_attr: [web-group_scaledown_policy, signal_url]}
+

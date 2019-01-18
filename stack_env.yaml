@@ -1,6 +1,3 @@
-resource_registry:
-    "OS::Nova::Server::CNVR": web_server.yaml
-
 parameter_defaults:
     ExtNet_name: ExtNet  
     r1_name: r1          
@@ -31,3 +28,10 @@ parameter_defaults:
     max_web_server: 3
     vm-web_image: cirros-0.3.4-x86_64-vnx 
     vm-web_flavor: m1.tiny
+    web-group_scale_cooldown: 60
+    web_scale_avg_period: 60
+    web_scaleup_thresh: 80
+    web_scaledown_thresh: 30
+
+resource_registry:
+    "OS::CNVR::WebServer": web_server.yaml
