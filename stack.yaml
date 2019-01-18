@@ -1,0 +1,302 @@
+heat_template_version: 2017-02-24
+
+description: Escenario de demonstracion completo, con ExtNet ya creada
+
+parameters:
+    ExtNet_name:
+        type: string
+        description: Nombre de la red externa
+
+    net1_name:
+        type: string
+        description: Nombre de la red interna
+    
+    subnet1_name:
+        type: string
+        description: Nombre de la subred asociada a la red interna
+    
+    subnet1_gateway:
+        type: string
+        description: Gateway de la subred asociada a la red interna
+        
+    subnet1_dns:
+        type: string
+        description: Servidor DNS de la subred
+        
+    subnet1_cidr:
+        type: string
+        description: CIDR de la subred
+        
+    subnet1_start:
+        type: string
+        description: Start of the allocation pool 
+        
+    subnet1_end:
+        type: string
+        description: End of the allocation pool
+
+    net2_name:
+        type: string
+        description: Nombre de la red de acceso a la base de datos
+    
+    subnet2_name:
+        type: string
+        description: Nombre de la subred asociada a la red de acceso a la base de datos
+    
+    subnet2_gateway:
+        type: string
+        description: Gateway de la subred asociada a la red de acceso a la base de datos
+        
+    subnet2_cidr:
+        type: string
+        description: CIDR de la subred asociada a la red de acceso a la base de datos
+        
+    subnet2_start:
+        type: string
+        description: Start of the allocation pool 
+        
+    subnet2_end:
+        type: string
+        description: End of the allocation pool
+       
+    r1_name:
+        type: string
+        description: Nombre del router
+
+    ssh_security_group_name:
+        type: string
+        description: Nombre del grupo de seguridad por acceso a ssh
+
+    http_security_group_name:
+        type: string
+        description: Nombre del grupo de seguridad por acceso a http
+
+    postgres_security_group_name:
+        type: string
+        description: Nombre del grupo de seguridad por acceso a PostgreSQL
+
+    icmp_security_group_name:
+        type: string
+        description: Nombre del grupo de seguridad por acceso a icmp
+        
+    vm-admin_image:
+        type: string
+        description: Tipo de imagen para vm-admin
+        
+    vm-admin_flavor:
+        type: string
+        description: Tipo de flavor para vm-admin
+
+    vm-admin_key_name:
+        type: string
+        description: Nombre de la pareja de claves
+
+    vm-postgres_image:
+        type: string
+        description: Tipo de imagen para la vm de la base de datos
+
+    vm-postgres_flavor:
+        type: string
+        description: Tipo de flavor para la vm de la base de datos
+
+    postgres_port:
+        type: number
+        description: Puerto de acceso a la base de datos
+
+    min_web_server:
+        type: number
+        description: Numero minimo de servidores web
+
+    max_web_server:
+        type: number
+        description: Numero maximo de servidores web
+
+    vm-web_image:
+        type: string
+        description: Tipo de imagen para el servidor web
+    
+    vm-web_flavor:
+        type: string
+        description: Tipo de flavor para el servidor web
+        
+resources:
+    net1:
+        type: OS::Neutron::ProviderNet
+        properties:
+            name: { get_param: net1_name }
+            network_type: vlan
+            
+    subnet1:
+        depends_on: [net1]
+        type: OS::Neutron::Subnet 
+        properties:
+            name: { get_param: subnet1_name }
+            network_id: { get_resource: net1 }
+            gateway_ip: { get_param: subnet1_gateway }
+            dns_nameservers: [{ get_param: subnet1_dns }]
+            cidr: { get_param: subnet1_cidr }
+            allocation_pools: 
+                - { start: { get_param: subnet1_start }, end: { get_param: subnet1_end }}
+
+    net2:
+        type: OS::Neutron::ProviderNet
+        properties:
+            name: { get_param: net2_name }
+            network_type: vlan
+            
+    subnet2:
+        depends_on: [net2]
+        type: OS::Neutron::Subnet 
+        properties:
+            name: { get_param: subnet2_name }
+            network_id: { get_resource: net2 }
+            gateway_ip: { get_param: subnet2_gateway }
+            cidr: { get_param: subnet2_cidr }
+            allocation_pools: 
+                - { start: { get_param: subnet2_start }, end: { get_param: subnet2_end }}
+            
+    r1:
+        type: OS::Neutron::Router
+        properties:
+            name: { get_param: r1_name }
+            external_gateway_info:
+                network: { get_param: ExtNet_name }
+    
+    r1_interface0:
+        depends_on: [r1, subnet1]
+        type: OS::Neutron::RouterInterface
+        properties:
+            router_id: { get_resource: r1 }
+            subnet_id: { get_resource: subnet1}
+            
+    ssh_security_group:
+        type: OS::Neutron::SecurityGroup 
+        properties:
+            description: SSH security group
+            name: { get_param: ssh_security_group_name }
+            rules:
+            -   remote_ip_prefix: 0.0.0.0/0 
+                protocol: tcp 
+                port_range_min: 22 
+                port_range_max: 22
+
+    http_security_group:
+        type: OS::Neutron::SecurityGroup 
+        properties:
+            description: SSH security group
+            name: { get_param: http_security_group_name }
+            rules:
+            -   remote_ip_prefix: 0.0.0.0/0 
+                protocol: tcp 
+                port_range_min: 80 
+                port_range_max: 80
+            -   remote_ip_prefix: 0.0.0.0/0 
+                protocol: tcp 
+                port_range_min: 443 
+                port_range_max: 443
+
+    postgres_security_group:
+        type: OS::Neutron::SecurityGroup 
+        properties: 
+            description: SSH security group
+            name: { get_param: http_security_group_name }
+            rules:
+            -   remote_ip_prefix: 0.0.0.0/0 
+                protocol: tcp 
+                port_range_min: { get_param: postgres_port } 
+                port_range_max: { get_param: postgres_port }
+
+    icmp_security_group:
+        type: OS::Neutron::SecurityGroup 
+        properties:
+            description: SSH security group
+            name: { get_param: http_security_group_name }
+            rules:
+            -   remote_ip_prefix: 0.0.0.0/0 
+                protocol: icmp
+                
+    vm-admin_net1_port:
+        depends_on: [net1, ssh_security_group, icmp_security_group]
+        type: OS::Neutron::Port
+        properties:
+            network_id: { get_resource: net1 }
+            security_groups: 
+                - { get_resource: ssh_security_group }
+                - { get_resource: icmp_security_group }
+
+    vm-admin_net2_port:
+        depends_on: [net2, icmp_security_group, postgres_security_group]
+        type: OS::Neutron::Port
+        properties:
+            network_id: { get_resource: net2 }
+            security_groups: 
+                - { get_resource: postgres_security_group }
+                - { get_resource: icmp_security_group }
+            
+    vm-admin_floating_ip:
+        depends_on: [vm-admin_net1_port]
+        type: OS::Neutron::FloatingIP
+        properties:
+            floating_network_id: { get_param: ExtNet_name }
+            port_id: { get_resource: vm-admin_net1_port }
+            
+    vm-admin_key:
+        type: OS::Nova::KeyPair
+        properties:
+            name: { get_param: vm-admin_key_name }
+            save_private_key: true
+            
+    vm-admin:
+        depends_on: [vm-admin_key, vm-admin_net1_port, vm-admin_net2_port]
+        type: OS::Nova::Server
+        properties:
+            image: { get_param: vm-admin_image }
+            flavor:  { get_param: vm-admin_flavor }
+            key_name: { get_resource: vm-admin_key }
+            networks:
+            - port: { get_resource: vm-admin_net1_port }
+            - port: { get_resource: vm-admin_net2_port }
+
+    vm-postgres_net2_port:
+        depends_on: [net2, icmp_security_group, postgres_security_group]
+        type: OS::Neutron::Port
+        properties:
+            network_id: { get_resource: net2 }
+            security_groups: 
+                - { get_resource: postgres_security_group }
+                - { get_resource: icmp_security_group }
+
+    vm-postgres:
+        depends_on: [vm-postgres_net2_port]
+        type: OS::Nova::Server
+        properties:
+            image: { get_param: vm-postgres_image }
+            flavor:  { get_param: vm-postgres_flavor }
+            networks:
+            - port: { get_resource: vm-postgres_net2_port }
+
+    web-group:
+        type: OS::Heat::AutoScalingGroup
+        properties:
+            min_size: { get_param: min_web_server }
+            max_size: { get_param: max_web_server }
+            resource:
+                type: OS::Nova::Server::CNVR
+                properties:
+                    icmp_security_group_name: { get_resource: icmp_security_group }
+                    postgres_security_group_name: { get_resource: postgres_security_group }
+                    http_security_group_name: { get_resource: http_security_group }
+                    net1_name: { get_param: net1_name }
+                    net2_name: { get_param: net2_name }
+                    vm_image: { get_param: vm-web_image }
+                    vm_flavor: { get_param: vm-web_flavor }
+                    
+            
+outputs:
+    vm-admin_ip:
+        description: Direccion IP asignada a vm1
+        value: { get_attr: [vm-admin, first_address] }
+        
+    vm-admin_private_key:
+        description: Clave privada
+        value: { get_attr: [vm-admin_key, private_key] }

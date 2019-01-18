@@ -1,0 +1,61 @@
+heat_template_version: 2017-02-24
+
+description: Servidor web basico
+
+properties:
+    icmp_security_group_name: 
+        type: string
+        description: Grupo de seguridad para ICMP
+
+    postgres_security_group_name: 
+        type: string
+        description: Grupo de seguridad para la base de datos
+
+    http_security_group_name: 
+        type: string
+        description: Grupo de seguridad para HTTP
+    
+    net1_name:
+        type: string
+        description: Red interna
+
+    net2_name:
+        type: string
+        description: Red de acceso a la base de datos
+
+    vm_image:
+        type: string
+        description: Tipo de imagen para el servidor web
+    
+    vm_flavor:
+        type: string
+        description: Tipo de flavor para el servidor web
+
+resources:
+    vm_net1_port:
+        type: OS::Neutron::Port
+        properties:
+            network_id: { get_param: net1_name }
+            security_groups: 
+                - { get_param: http_security_group_name }
+                - { get_param: icmp_security_group_name }
+
+    vm_net2_port:
+        type: OS::Neutron::Port
+        properties:
+            network_id: { get_param: net2_name }
+            security_groups: 
+                - { get_param: postgres_security_group_name }
+                - { get_param: icmp_security_group_name }
+
+    vm:
+        depends_on: [vm_net2_port, vm_net1_port]
+        type: OS::Nova::Server
+        properties:
+            image: { get_param: vm_image }
+            flavor:  { get_param: vm_flavor }
+            networks:
+            - port: { get_resource: vm_net2_port }
+            - port: { get_resource: vm_net1_port }
+
+
