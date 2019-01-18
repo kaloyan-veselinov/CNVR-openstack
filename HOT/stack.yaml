@@ -264,6 +264,7 @@ resources:
 
     LBaaS_web:
         type: CNVR::LBaaS
+        depends_on: [ssh_security_group, icmp_security_group, postgres_security_group, subnet1, subnet2, vm-postgres]
         properties:
             vm-web_image: { get_param: vm-admin_image }
             vm-web_flavor: { get_param: vm-admin_flavor }
@@ -283,6 +284,8 @@ resources:
             web_scale_avg_period: { get_param: web_scale_avg_period }
             web_scaleup_thresh: { get_param: web_scaleup_tresh }
             web_scaledown_thresh: { get_param: web_scaledown_thresh }
+            vm-postgres: { get_resource: vm-postgres }
+            postgres_port: { get_param: postgres_port }
             
 outputs:
     vm-admin_ip:

@@ -73,6 +73,14 @@ parameters:
         type: string
         description: Nombre del grupo de seguridad por acceso a ssh
 
+    vm-postgres:
+        type: string
+        description: Identifier of the database VM
+
+    postgres_port:
+        type: number
+        description: Port used to access the database
+
 
 resources:
     web_LBaaS:
