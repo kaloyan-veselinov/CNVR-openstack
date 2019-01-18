@@ -261,62 +261,29 @@ resources:
             ssh_security_group: { get_resource: ssh_security_group }
             icmp_security_group: { get_resource: icmp_security_group }
 
-    web_LBaaS_pool:
-        type: OS::Neutron::LBaaS::Pool
+    LBaaS_web:
+        type: CNVR::LBaaS
         properties:
-            lb_algorithm: ROUND_ROBIN
-            protocol: HTTP
-            listener: { get_resource: web_LBaaS_listener }
+            vm-web_image: { get_param: vm-admin_image }
+            vm-web_flavor: { get_param: vm-admin_flavor }
+            ExtNet: { get_param: ExtNet_name }
+            net1: { get_resource: net1 }
+            net2: { get_resource: net2 }
+            subnet1: { get_resource: subnet1 }
+            postgres_security_group: { get_resource: postgres_security_group }
+            ssh_security_group: { get_resource: ssh_security_group }
+            icmp_security_group: { get_resource: icmp_security_group }
+            http_security_group: { get_param: http_security_group }
+            web_LBaas_port: { get_param: web_LBaaS_port }
+            min_web_server: { get_param: min_web_server }
+            max_web_server: { get_param: max_web_server }
+            web-group_scale_cooldown: { get_param: web-group_scale_cooldown }
+            web_protocol_port: { get_param: web_protocol_port }
+            web_scale_avg_period: { get_param: web_scale_avg_period }
+            web_scaleup_thresh: { get_param: web_scaleup_tresh }
+            web_scaledown_thresh: { get_param: web_scaledown_thresh }
 
-    web_LBaaS_listener:
-        type: OS::Neutron::LBaaS::Listener
-        properties:
-            loadbalancer: { get_resource: web_LBaaS }
-            protocol: HTTP
-            protocol_port: { get_param: web_LBaaS_port }
-
-    web_LBaaS:
-        type: OS::Neutron::LBaaS::LoadBalancer
-        properties:
-            vip_subnet: { get_resource: subnet1 }
-
-    web-group:
-        depends_on: [subnet1, subnet2, icmp_security_group, postgres_security_group, http_security_group]
-        type: OS::Heat::AutoScalingGroup
-        properties:
-            min_size: { get_param: min_web_server }
-            max_size: { get_param: max_web_server }
-            cooldown: { get_param: web-group_scale_cooldown }
-            resource:
-                type: CNVR::Server::Web
-                properties:
-                    image: { get_param: vm-web_image }
-                    flavor:  { get_param: vm-web_flavor }
-                    net1: { get_resource: net1 }
-                    net2: { get_resource: net2 }
-                    subnet1: { get_resource: subnet1 }
-                    http_security_group: { get_resource: http_security_group }
-                    postgres_security_group: { get_resource: postgres_security_group }
-                    icmp_security_group: { get_resource: icmp_security_group }
-                    ssh_security_group: { get_resource: ssh_security_group }
-                    protocol_port: { get_param: web_protocol_port }
-                    pool: { get_resource: web_LBaaS_pool }
-
-    web-group_scaleup_policy:
-        type: OS::Heat::ScalingPolicy
-        properties:
-            adjustment_type: change_in_capacity
-            auto_scaling_group_id: { get_resource: web-group }
-            cooldown: { get_param: web-group_scale_cooldown }
-            scaling_adjustment: 1
-
-    web-group_scaledown_policy:
-        type: OS::Heat::ScalingPolicy
-        properties:
-            adjustment_type: change_in_capacity
-            auto_scaling_group_id: { get_resource: web-group }
-            cooldown: { get_param: web-group_scale_cooldown }
-            scaling_adjustment: -1  
+  
 
             
 outputs:
@@ -327,6 +294,10 @@ outputs:
     vm-admin_private_key:
         description: Clave privada de vm-admin
         value: { get_attr: [vm-admin, private_key] }
+
+    LBaaS_ip:
+        description: URL to reach the LBaaS
+        value: { get_attr: [ LBaaS_web, ip ] }
 
     web-group_scaleup_url:
         description: URL para aumentar el numero de servidores web

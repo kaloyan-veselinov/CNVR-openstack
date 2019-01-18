@@ -1,0 +1,150 @@
+heat_template_version: 2017-02-24
+
+parameters:
+    ExtNet:
+        type: string
+        description: name of the external network
+
+    net1:
+        type: string
+        description: net1
+
+    net2:
+        type: string
+        description: net2
+
+    subnet1:
+        type: string
+        description: id of subnet1
+
+    vm-web_image:
+        type: string
+        description: Tipo de imagen para el servidor web
+    
+    vm-web_flavor:
+        type: string
+        description: Tipo de flavor para el servidor web
+
+    web-group_scale_cooldown:
+        type: number
+        description: Cooldown para la escabilidad de los servidores web
+
+    web_scale_avg_period:
+        type: number
+        description: Periodo para el calculo de la utilizacion de los servidores web
+
+    web_scaleup_thresh:
+        type: number
+        description: Utilizacion minima para anadir un servidor web
+
+    web_scaledown_thresh:
+        type: number
+        description: Utilizacion maxima para suprimir un servidor web 
+
+    web_protocol_port:
+        type: number
+        description: Port number for web server 
+
+    web_LBaaS_port:
+        type: number
+        description: Port number for LBaaS
+
+    min_web_server:
+        type: number
+        description: Numero minimo de servidores web
+
+    max_web_server:
+        type: number
+        description: Numero maximo de servidores web
+
+    http_security_group:
+        type: string
+        description: Nombre del grupo de seguridad por acceso a http
+
+    postgres_security_group:
+        type: string
+        description: Nombre del grupo de seguridad por acceso a PostgreSQL
+
+    icmp_security_group:
+        type: string
+        description: Nombre del grupo de seguridad por acceso a icmp
+
+    ssh_security_group:
+        type: string
+        description: Nombre del grupo de seguridad por acceso a ssh
+
+
+resources:
+    web_LBaaS:
+        type: OS::Neutron::LBaaS::LoadBalancer
+        properties:
+            vip_subnet: { get_param: subnet1 }
+
+    web_LBaaS_floating_ip:
+        depends_on: [web_LBaaS]
+        type: OS::Neutron::FloatingIP
+        properties:
+            floating_network_id: { get_param: ExtNet }
+            port_id: { get_attr: [web_LBaas, vip_port_id ]}
+
+    web_LBaaS_listener:
+        type: OS::Neutron::LBaaS::Listener
+        depends_on: [web_LBaaS]
+        properties:
+            loadbalancer: { get_resource: web_LBaaS }
+            protocol: HTTP
+            protocol_port: { get_param: web_LBaaS_port }
+
+    web_LBaaS_pool:
+        type: OS::Neutron::LBaaS::Pool
+        depends_on: [web_LBaaS_listener]
+        properties:
+            lb_algorithm: ROUND_ROBIN
+            protocol: HTTP
+            listener: { get_resource: web_LBaaS_listener }
+
+    web-group:
+        type: OS::Heat::AutoScalingGroup
+        properties:
+            min_size: { get_param: min_web_server }
+            max_size: { get_param: max_web_server }
+            cooldown: { get_param: web-group_scale_cooldown }
+            resource:
+                type: CNVR::Server::Web
+                properties:
+                    image: { get_param: vm-web_image }
+                    flavor:  { get_param: vm-web_flavor }
+                    net1: { get_param: net1 }
+                    net2: { get_param: net2 }
+                    subnet1: { get_param: subnet1 }
+                    http_security_group: { get_param: http_security_group }
+                    postgres_security_group: { get_param: postgres_security_group }
+                    icmp_security_group: { get_param: icmp_security_group }
+                    ssh_security_group: { get_param: ssh_security_group }
+                    protocol_port: { get_param: web_protocol_port }
+                    pool: { get_resource: web_LBaaS_pool }
+
+    web-group_scaleup_policy:
+        type: OS::Heat::ScalingPolicy
+        depends_on: [web_group]
+        properties:
+            adjustment_type: change_in_capacity
+            auto_scaling_group_id: { get_resource: web-group }
+            cooldown: { get_param: web-group_scale_cooldown }
+            scaling_adjustment: 1
+
+    web-group_scaledown_policy:
+        type: OS::Heat::ScalingPolicy
+        depends_on: [web_group]
+        properties:
+            adjustment_type: change_in_capacity
+            auto_scaling_group_id: { get_resource: web-group }
+            cooldown: { get_param: web-group_scale_cooldown }
+            scaling_adjustment: -1
+
+outputs:
+    ip:
+        description: URL to reach the LBaaS
+        value: { get_attr: [ web_LBaaS_floating_ip, floating_ip_address ] }
+        
+
