@@ -17,6 +17,10 @@ parameters:
         type: string
         description: net2
 
+    subnet1:
+        type: string
+        description: subnet1
+
     http_security_group:
         type: string
         description: Nombre del grupo de seguridad por acceso a http
@@ -32,6 +36,14 @@ parameters:
     ssh_security_group:
         type: string
         description: Nombre del grupo de seguridad por acceso a ssh
+
+    pool:
+        type: string
+        description: LBaaS pool
+
+    protocol_port:
+        type: number
+        description: Web protocol port
 
 resources:
     vm-web_net1_port:
@@ -51,6 +63,7 @@ resources:
                 - { get_param: icmp_security_group }
     
     vm-web:
+        depends_on: [vm-web_net1_port, vm-web_net2_port]
         type: OS::Nova::Server
         properties:
             image: { get_param: image }
@@ -58,3 +71,11 @@ resources:
             networks:
                 - port: { get_resource: vm-web_net1_port }
                 - port: { get_resource: vm-web_net2_port }
+
+    vm-web_pool_member:
+        type: OS::Neutron::LBaaS::PoolMember
+        properties:
+            pool: { get_param: pool }
+            address: { get_attr: [ vm-web, first_address ]}
+            protocol_port: { get_param: protocol_port }
+            subnet: { get_param: subnet1 }

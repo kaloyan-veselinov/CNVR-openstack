@@ -133,7 +133,16 @@ parameters:
 
     web_scaledown_thresh:
         type: number
-        description: Utilizacion maxima para suprimir un servidor web    
+        description: Utilizacion maxima para suprimir un servidor web 
+
+    web_protocol_port:
+        type: number
+        description: Port number for web server 
+
+    web_LBaaS_port:
+        type: number
+        description: Port number for LBaaS
+  
         
 resources:
     net1:
@@ -290,6 +299,25 @@ resources:
             flavor:  { get_param: vm-postgres_flavor }
             networks:
             - port: { get_resource: vm-postgres_net2_port }
+    
+    web_LBaaS_pool:
+        type: OS::Neutron::LBaaS::Pool
+        properties:
+            lb_algorithm: ROUND_ROBIN
+            protocol: HTTP
+            listener: { get_resource: web_LBaaS_listener }
+
+    web_LBaaS_listener:
+        type: OS::Neutron::LBaaS::Listener
+        properties:
+            loadbalancer: { get_resource: web_LBaaS }
+            protocol: HTTP
+            protocol_port: { get_param: web_LBaaS_port }
+
+    web_LBaaS:
+        type: OS::Neutron::LBaaS::LoadBalancer
+        properties:
+            vip_subnet: { get_resource: subnet1 }
 
     web-group:
         depends_on: [subnet1, subnet2, icmp_security_group, postgres_security_group, http_security_group]
@@ -305,10 +333,13 @@ resources:
                     flavor:  { get_param: vm-web_flavor }
                     net1: { get_resource: net1 }
                     net2: { get_resource: net2 }
+                    subnet1: { get_resource: subnet1 }
                     http_security_group: { get_resource: http_security_group }
                     postgres_security_group: { get_resource: postgres_security_group }
                     icmp_security_group: { get_resource: icmp_security_group }
                     ssh_security_group: { get_resource: ssh_security_group }
+                    protocol_port: { get_param: web_protocol_port }
+                    pool: { get_resource: web_LBaaS_pool }
 
     web-group_scaleup_policy:
         type: OS::Heat::ScalingPolicy

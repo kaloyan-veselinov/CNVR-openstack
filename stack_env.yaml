@@ -32,6 +32,8 @@ parameter_defaults:
     web_scale_avg_period: 60
     web_scaleup_thresh: 80
     web_scaledown_thresh: 30
+    web_protocol_port: 80
+    web_LBaaS_port: 80
 
 resource_registry:
     "OS::CNVR::WebServer": web_server.yaml
