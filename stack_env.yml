@@ -22,3 +22,5 @@ parameter_defaults:
     vm-admin_flavor: m1.tiny
     vm-admin_key_name: vm1
     postgres_port: 5432
+    vm-postgres_image: cirros-0.3.4-x86_64-vnx
+    vm-postgres_flavor: m1.tiny
