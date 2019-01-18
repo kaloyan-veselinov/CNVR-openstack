@@ -1,0 +1,150 @@
+heat_template_version: 2017-02-24
+
+description: Escenario de demonstracion completo, con ExtNet ya creada
+
+parameters:
+    net0_name:
+        type: string
+        description: Nombre de la red interna
+    
+    subnet0_name:
+        type: string
+        description: Nombre de la subred asociada a la red interna
+    
+    subnet0_gateway:
+        type: string
+        description: Gateway de la subred asociada a la red interna
+        
+    subnet0_dns:
+        type: string
+        description: Servidor DNS de la subred
+        
+    subnet0_cidr:
+        type: string
+        description: CIDR de la subred
+        
+    subnet0_start:
+        type: string
+        description: Start of the allocation pool 
+        
+    subnet0_end:
+        type: string
+        description: End of the allocation pool
+        
+    key_name:
+        type: string
+        description: Nombre de la pareja de claves
+        
+    r0_name:
+        type: string
+        description: Nombre del router
+        
+    ExtNet_name:
+        type: string
+        description: Nombre de la red externa
+        
+    vm1_security_group_name:
+        type: string
+        description: Nombre del grupo de seguridad por vm1
+        
+    vm1_image:
+        type: string
+        description: Tipo de imagen para vm1
+        
+    vm1_flavor:
+        type: string
+        description: Tipo de flavor para vm1
+        
+
+resources:
+    net0:
+        type: OS::Neutron::ProviderNet
+        properties:
+            name: { get_param: net0_name }
+            network_type: vlan
+            
+    subnet0:
+        depends_on: [net0]
+        type: OS::Neutron::Subnet 
+        properties:
+            name: { get_param: subnet0_name }
+            network_id: { get_resource: net0 }
+            gateway_ip: { get_param: subnet0_gateway }
+            dns_nameservers: [{ get_param: subnet0_dns }]
+            cidr: { get_param: subnet0_cidr }
+            allocation_pools: 
+                - { start: { get_param: subnet0_start }, end: { get_param: subnet0_end }}
+            
+    r0:
+        type: OS::Neutron::Router
+        properties:
+            name: { get_param: r0_name }
+            external_gateway_info:
+                network: { get_param: ExtNet_name }
+    
+    r0_interface0:
+        depends_on: [r0, subnet0]
+        type: OS::Neutron::RouterInterface
+        properties:
+            router_id: { get_resource: r0 }
+            subnet_id: { get_resource: subnet0}
+            
+    security_group:
+        type: OS::Neutron::SecurityGroup 
+        properties:
+            description: Grupo de seguridad para vm1 (ICMP, HTTP, SSH)
+            name: { get_param: vm1_security_group_name }
+            rules:
+            -   remote_ip_prefix: 0.0.0.0/0 
+                protocol: tcp 
+                port_range_min: 22 
+                port_range_max: 22 
+            -   remote_ip_prefix: 0.0.0.0/0 
+                protocol: icmp
+            -   remote_ip_prefix: 0.0.0.0/0 
+                protocol: tcp 
+                port_range_min: 80 
+                port_range_max: 80 
+                
+    port0:
+        depends_on: [net0, security_group]
+        type: OS::Neutron::Port
+        properties:
+            network_id: { get_resource: net0 }
+            security_groups: [{ get_resource: security_group }]
+            
+    vm1_floating_ip:
+        depends_on: [port0]
+        type: OS::Neutron::FloatingIP
+        properties:
+            floating_network_id: { get_param: ExtNet_name }
+            port_id: { get_resource: port0 }
+            
+    key:
+        type: OS::Nova::KeyPair
+        properties:
+            name: { get_param: key_name }
+            save_private_key: true
+            
+    vm1:
+        depends_on: [key, port0]
+        type: OS::Nova::Server
+        properties:
+            image: { get_param: vm1_image }
+            flavor:  { get_param: vm1_flavor }
+            key_name: { get_resource: key }
+            networks:
+            - port: { get_resource: port0 } 
+            
+outputs:
+    vm1_ip:
+        description: Direccion IP asignada a vm1
+        value: { get_attr: [vm1, first_address] }
+        
+    vm1_name:
+        description: Nombre de vm1
+        value: { get_attr: [vm1, instance_name] }
+        
+    private_key:
+        description: Clave privada
+        value: { get_attr: [key, private_key] }

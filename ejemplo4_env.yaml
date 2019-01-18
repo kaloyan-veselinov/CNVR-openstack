@@ -1,0 +1,14 @@
+parameter_defaults:
+    r0_name: r0        
+    ExtNet_name: ExtNet    
+    net0_name: net0    
+    subnet0_name: subnet0    
+    subnet0_gateway: 10.1.1.1
+    subnet0_dns: 8.8.8.8
+    subnet0_cidr: 10.1.1.0/24
+    subnet0_start: 10.1.1.8        
+    subnet0_end: 10.1.1.100 
+    vm1_security_group_name: sg_vm1
+    vm1_image: cirros-0.3.4-x86_64-vnx
+    vm1_flavor: m1.tiny
+    key_name: vm1
