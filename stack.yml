@@ -3,6 +3,10 @@ heat_template_version: 2017-02-24
 description: Escenario de demonstracion completo, con ExtNet ya creada
 
 parameters:
+    ExtNet_name:
+        type: string
+        description: Nombre de la red externa
+
     net1_name:
         type: string
         description: Nombre de la red interna
@@ -59,37 +63,33 @@ parameters:
         type: string
         description: Nombre del router
 
-    vm-admin_key_name:
-        type: string
-        description: Nombre de la pareja de claves
-        
-    ExtNet_name:
-        type: string
-        description: Nombre de la red externa
-        
     ssh_security_group_name:
         type: string
-        description: Nombre del grupo de seguridad por vm1
+        description: Nombre del grupo de seguridad por acceso a ssh
 
     http_security_group_name:
         type: string
-        description: Nombre del grupo de seguridad por vm1
+        description: Nombre del grupo de seguridad por acceso a http
 
     postgres_security_group_name:
         type: string
-        description: Nombre del grupo de seguridad por vm1
+        description: Nombre del grupo de seguridad por acceso a PostgreSQL
 
     icmp_security_group_name:
         type: string
-        description: Nombre del grupo de seguridad por vm1
+        description: Nombre del grupo de seguridad por acceso a icmp
         
     vm-admin_image:
         type: string
-        description: Tipo de imagen para vm1
+        description: Tipo de imagen para vm-admin
         
     vm-admin_flavor:
         type: string
-        description: Tipo de flavor para vm1
+        description: Tipo de flavor para vm-admin
+
+    vm-admin_key_name:
+        type: string
+        description: Nombre de la pareja de claves
 
     postgres_port:
         type: number
