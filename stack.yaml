@@ -303,11 +303,12 @@ resources:
                 properties:
                     image: { get_param: vm-web_image }
                     flavor:  { get_param: vm-web_flavor }
-                    subnet1: { get_resource: subnet1 }
-                    subnet2: { get_resource: subnet2 }
+                    net1: { get_resource: net1 }
+                    net2: { get_resource: net2 }
                     http_security_group: { get_resource: http_security_group }
                     postgres_security_group: { get_resource: postgres_security_group }
                     icmp_security_group: { get_resource: icmp_security_group }
+                    ssh_security_group: { get_resource: ssh_security_group }
 
     web-group_scaleup_policy:
         type: OS::Heat::ScalingPolicy

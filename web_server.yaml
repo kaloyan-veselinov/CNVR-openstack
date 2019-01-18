@@ -9,13 +9,13 @@ parameters:
         type: string
         description: Flavor for the web server
 
-    subnet1:
+    net1:
         type: string
-        description: subnet1
+        description: net1
 
-    subnet2:
+    net2:
         type: string
-        description: subnet2
+        description: net2
 
     http_security_group:
         type: string
@@ -29,16 +29,32 @@ parameters:
         type: string
         description: Nombre del grupo de seguridad por acceso a icmp
 
+    ssh_security_group:
+        type: string
+        description: Nombre del grupo de seguridad por acceso a ssh
+
 resources:
+    vm-web_net1_port:
+        type: OS::Neutron::Port
+        properties:
+            network_id: { get_param: net1 }
+            security_groups: 
+                - { get_param: ssh_security_group }
+                - { get_param: icmp_security_group }
+
+    vm-web_net2_port:
+        type: OS::Neutron::Port
+        properties:
+            network_id: { get_param: net2 }
+            security_groups: 
+                - { get_param: postgres_security_group }
+                - { get_param: icmp_security_group }
+    
     vm-web:
         type: OS::Nova::Server
         properties:
             image: { get_param: image }
             flavor:  { get_param: flavor }
             networks:
-                - subnet: { get_param: subnet1 }
-                - subnet: { get_param: subnet2 }
-            security_groups: 
-                - { get_param: postgres_security_group }
-                - { get_param: icmp_security_group }
-                - { get_param: http_security_group }
+                - port: { get_resource: vm-web_net1_port }
+                - port: { get_resource: vm-web_net2_port }
