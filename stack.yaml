@@ -276,20 +276,23 @@ resources:
             - port: { get_resource: vm-postgres_net2_port }
 
     web-group:
+        depends_on: [subnet1, subnet2, icmp_security_group, postgres_security_group, http_security_group]
         type: OS::Heat::AutoScalingGroup
         properties:
             min_size: { get_param: min_web_server }
             max_size: { get_param: max_web_server }
             resource:
-                type: OS::Nova::Server::CNVR
+                type: OS::Nova::Server
                 properties:
-                    icmp_security_group_name: { get_resource: icmp_security_group }
-                    postgres_security_group_name: { get_resource: postgres_security_group }
-                    http_security_group_name: { get_resource: http_security_group }
-                    net1_name: { get_param: net1_name }
-                    net2_name: { get_param: net2_name }
-                    vm_image: { get_param: vm-web_image }
-                    vm_flavor: { get_param: vm-web_flavor }
+                    image: { get_param: vm-web_image }
+                    flavor:  { get_param: vm-web_flavor }
+                    networks:
+                        - subnet: { get_resource: subnet1 }
+                        - subnet: { get_resource: subnet2 }
+                security_groups: 
+                    - { get_resource: postgres_security_group }
+                    - { get_resource: icmp_security_group }
+                    - { get_resource: http_security_group }
                     
             
 outputs:

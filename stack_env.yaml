@@ -28,6 +28,6 @@ parameter_defaults:
     vm-postgres_image: cirros-0.3.4-x86_64-vnx
     vm-postgres_flavor: m1.tiny
     min_web_server: 3
-    max_web_server: 10
+    max_web_server: 3
     vm-web_image: cirros-0.3.4-x86_64-vnx 
     vm-web_flavor: m1.tiny
