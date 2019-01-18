@@ -102,6 +102,47 @@ parameters:
     postgres_port:
         type: number
         description: Puerto de acceso a la base de datos
+
+    min_web_server:
+        type: number
+        description: Numero minimo de servidores web
+
+    max_web_server:
+        type: number
+        description: Numero maximo de servidores web
+
+    vm-web_image:
+        type: string
+        description: Tipo de imagen para el servidor web
+    
+    vm-web_flavor:
+        type: string
+        description: Tipo de flavor para el servidor web
+
+    web-group_scale_cooldown:
+        type: number
+        description: Cooldown para la escabilidad de los servidores web
+
+    web_scale_avg_period:
+        type: number
+        description: Periodo para el calculo de la utilizacion de los servidores web
+
+    web_scaleup_thresh:
+        type: number
+        description: Utilizacion minima para anadir un servidor web
+
+    web_scaledown_thresh:
+        type: number
+        description: Utilizacion maxima para suprimir un servidor web 
+
+    web_protocol_port:
+        type: number
+        description: Port number for web server 
+
+    web_LBaaS_port:
+        type: number
+        description: Port number for LBaaS
+  
         
 resources:
     net1:
@@ -156,7 +197,6 @@ resources:
     ssh_security_group:
         type: OS::Neutron::SecurityGroup 
         properties:
-            description: SSH security group
             name: { get_param: ssh_security_group_name }
             rules:
             -   remote_ip_prefix: 0.0.0.0/0 
@@ -167,7 +207,6 @@ resources:
     http_security_group:
         type: OS::Neutron::SecurityGroup 
         properties:
-            description: SSH security group
             name: { get_param: http_security_group_name }
             rules:
             -   remote_ip_prefix: 0.0.0.0/0 
@@ -182,7 +221,6 @@ resources:
     postgres_security_group:
         type: OS::Neutron::SecurityGroup 
         properties: 
-            description: SSH security group
             name: { get_param: http_security_group_name }
             rules:
             -   remote_ip_prefix: 0.0.0.0/0 
@@ -193,77 +231,108 @@ resources:
     icmp_security_group:
         type: OS::Neutron::SecurityGroup 
         properties:
-            description: SSH security group
             name: { get_param: http_security_group_name }
             rules:
             -   remote_ip_prefix: 0.0.0.0/0 
                 protocol: icmp
-                
-    vm-admin_net1_port:
-        depends_on: [net1, ssh_security_group, icmp_security_group]
-        type: OS::Neutron::Port
-        properties:
-            network_id: { get_resource: net1 }
-            security_groups: 
-                - { get_resource: ssh_security_group }
-                - { get_resource: icmp_security_group }
-
-    vm-admin_net2_port:
-        depends_on: [net2, icmp_security_group, postgres_security_group]
-        type: OS::Neutron::Port
-        properties:
-            network_id: { get_resource: net2 }
-            security_groups: 
-                - { get_resource: postgres_security_group }
-                - { get_resource: icmp_security_group }
-            
-    vm-admin_floating_ip:
-        depends_on: [vm-admin_net1_port]
-        type: OS::Neutron::FloatingIP
-        properties:
-            floating_network_id: { get_param: ExtNet_name }
-            port_id: { get_resource: vm-admin_net1_port }
-            
-    vm-admin_key:
-        type: OS::Nova::KeyPair
-        properties:
-            name: { get_param: vm-admin_key_name }
-            save_private_key: true
-            
+    
     vm-admin:
-        depends_on: [vm-admin_key, vm-admin_net1_port, vm-admin_net2_port]
-        type: OS::Nova::Server
+        type: CNVR::Server::Admin
+        depends_on: [ssh_security_group, icmp_security_group, postgres_security_group, subnet1, subnet2]
         properties:
             image: { get_param: vm-admin_image }
-            flavor:  { get_param: vm-admin_flavor }
-            key_name: { get_resource: vm-admin_key }
-            networks:
-            - port: { get_resource: vm-admin_net1_port }
-            - port: { get_resource: vm-admin_net2_port }
-
-    vm-postgres_net2_port:
-        depends_on: [net2, icmp_security_group, postgres_security_group]
-        type: OS::Neutron::Port
-        properties:
-            network_id: { get_resource: net2 }
-            security_groups: 
-                - { get_resource: postgres_security_group }
-                - { get_resource: icmp_security_group }
-
+            flavor: { get_param: vm-admin_flavor }
+            key_name: { get_param: vm-admin_key_name }
+            ExtNet: { get_param: ExtNet_name }
+            net1: { get_resource: net1 }
+            net2: { get_resource: net2 }
+            postgres_security_group: { get_resource: postgres_security_group }
+            ssh_security_group: { get_resource: ssh_security_group }
+            icmp_security_group: { get_resource: icmp_security_group }
+    
     vm-postgres:
-        depends_on: [vm-postgres_net2_port]
-        type: OS::Nova::Server
+        type: CNVR::Server::Postgres
+        depends_on: [ssh_security_group, icmp_security_group, postgres_security_group, subnet2]
         properties:
-            image: { get_param: vm-postgres_image }
-            flavor:  { get_param: vm-postgres_flavor }
-            networks:
-            - port: { get_resource: vm-postgres_net2_port }
+            image: { get_param: vm-admin_image }
+            flavor: { get_param: vm-admin_flavor }
+            net2: { get_resource: net2 }
+            postgres_security_group: { get_resource: postgres_security_group }
+            ssh_security_group: { get_resource: ssh_security_group }
+            icmp_security_group: { get_resource: icmp_security_group }
+
+    web_LBaaS_pool:
+        type: OS::Neutron::LBaaS::Pool
+        properties:
+            lb_algorithm: ROUND_ROBIN
+            protocol: HTTP
+            listener: { get_resource: web_LBaaS_listener }
+
+    web_LBaaS_listener:
+        type: OS::Neutron::LBaaS::Listener
+        properties:
+            loadbalancer: { get_resource: web_LBaaS }
+            protocol: HTTP
+            protocol_port: { get_param: web_LBaaS_port }
+
+    web_LBaaS:
+        type: OS::Neutron::LBaaS::LoadBalancer
+        properties:
+            vip_subnet: { get_resource: subnet1 }
+
+    web-group:
+        depends_on: [subnet1, subnet2, icmp_security_group, postgres_security_group, http_security_group]
+        type: OS::Heat::AutoScalingGroup
+        properties:
+            min_size: { get_param: min_web_server }
+            max_size: { get_param: max_web_server }
+            cooldown: { get_param: web-group_scale_cooldown }
+            resource:
+                type: CNVR::Server::Web
+                properties:
+                    image: { get_param: vm-web_image }
+                    flavor:  { get_param: vm-web_flavor }
+                    net1: { get_resource: net1 }
+                    net2: { get_resource: net2 }
+                    subnet1: { get_resource: subnet1 }
+                    http_security_group: { get_resource: http_security_group }
+                    postgres_security_group: { get_resource: postgres_security_group }
+                    icmp_security_group: { get_resource: icmp_security_group }
+                    ssh_security_group: { get_resource: ssh_security_group }
+                    protocol_port: { get_param: web_protocol_port }
+                    pool: { get_resource: web_LBaaS_pool }
+
+    web-group_scaleup_policy:
+        type: OS::Heat::ScalingPolicy
+        properties:
+            adjustment_type: change_in_capacity
+            auto_scaling_group_id: { get_resource: web-group }
+            cooldown: { get_param: web-group_scale_cooldown }
+            scaling_adjustment: 1
+
+    web-group_scaledown_policy:
+        type: OS::Heat::ScalingPolicy
+        properties:
+            adjustment_type: change_in_capacity
+            auto_scaling_group_id: { get_resource: web-group }
+            cooldown: { get_param: web-group_scale_cooldown }
+            scaling_adjustment: -1  
+
             
 outputs:
     vm-admin_ip:
-        description: Direccion IP asignada a vm1
+        description: Direccion IP asignada a vm-admin
         value: { get_attr: [vm-admin, first_address] }
         
     vm-admin_private_key:
-        description: Clave privada
-        value: { get_attr: [vm-admin_key, private_key] }
+        description: Clave privada de vm-admin
+        value: { get_attr: [vm-admin, private_key] }
+
+    web-group_scaleup_url:
+        description: URL para aumentar el numero de servidores web
+        value: { get_attr: [web-group_scaleup_policy, signal_url]}
+
+    web-group_scaledown_url:
+        description: URL para aumentar el numero de servidores web
+        value: { get_attr: [web-group_scaledown_policy, signal_url]}
+

@@ -1,0 +1,85 @@
+heat_template_version: 2017-02-24
+
+parameters:
+    image:
+        type: string
+        description: Image type for the web server
+    
+    flavor:
+        type: string
+        description: Flavor for the web server
+    
+    key_name:
+        type: string
+        description: Name for the SSL key
+        
+    ExtNet:
+        type: string
+        description: name of the external network
+
+    net1:
+        type: string
+        description: net1 identifier
+
+    net2:
+        type: string
+        description: net2 identifier
+
+    postgres_security_group:
+        type: string
+        description: PosrgreSQL security group
+
+    icmp_security_group:
+        type: string
+        description: ICMP security group
+
+    ssh_security_group:
+        type: string
+        description: SSH security group
+
+resources:
+    vm-admin_net1_port:
+        type: OS::Neutron::Port
+        properties:
+            network_id: { get_param: net1 }
+            security_groups: 
+                - { get_param: ssh_security_group }
+                - { get_param: icmp_security_group }
+
+    vm-admin_net2_port:
+        type: OS::Neutron::Port
+        properties:
+            network_id: { get_param: net2 }
+            security_groups: 
+                - { get_param: postgres_security_group }
+                - { get_param: icmp_security_group }
+                
+    vm-admin_floating_ip:
+        depends_on: [vm-admin_net1_port]
+        type: OS::Neutron::FloatingIP
+        properties:
+            floating_network_id: { get_param: ExtNet }
+            port_id: { get_resource: vm-admin_net1_port }
+    
+    vm-admin_key:
+        type: OS::Nova::KeyPair
+        properties:
+            name: { get_param: key_name }
+            save_private_key: true
+    
+    vm-admin:
+        depends_on: [vm-admin_key, vm-admin_net1_port, vm-admin_net2_port]
+        type: OS::Nova::Server
+        properties:
+            image: { get_param: image }
+            flavor:  { get_param: flavor }
+            key_name: { get_resource: vm-admin_key }
+            networks:
+            - port: { get_resource: vm-admin_net1_port }
+            - port: { get_resource: vm-admin_net2_port }
+
+outputs:
+    OS::stack_id:
+        value: { get_resource: vm-admin } 
+
+

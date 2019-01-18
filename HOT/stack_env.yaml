@@ -24,3 +24,18 @@ parameter_defaults:
     postgres_port: 5432
     vm-postgres_image: cirros-0.3.4-x86_64-vnx
     vm-postgres_flavor: m1.tiny
+    min_web_server: 3
+    max_web_server: 3
+    vm-web_image: cirros-0.3.4-x86_64-vnx 
+    vm-web_flavor: m1.tiny
+    web-group_scale_cooldown: 60
+    web_scale_avg_period: 60
+    web_scaleup_thresh: 80
+    web_scaledown_thresh: 30
+    web_protocol_port: 80
+    web_LBaaS_port: 80
+
+resource_registry:
+    "CNVR::Server::Web": server_web.yaml
+    "CNVR::Server::Admin": server_admin.yaml
+    "CNVR::Server::Postgres": server_postgres.yaml
