@@ -154,6 +154,8 @@ parameters:
     db_user:
         type: string
         description: Nombre de usuario para la base de datos
+
+
   
         
 resources:
@@ -225,12 +227,9 @@ resources:
             rules:
             -   remote_ip_prefix: 0.0.0.0/0 
                 protocol: tcp 
-                port_range_min: 80 
-                port_range_max: 80
-            -   remote_ip_prefix: 0.0.0.0/0 
-                protocol: tcp 
-                port_range_min: 443 
-                port_range_max: 443
+                port_range_min: { get_param: web_protocol_port }
+                port_range_max: { get_param: web_protocol_port }
+            
 
     postgres_security_group:
         type: OS::Neutron::SecurityGroup 
@@ -274,7 +273,7 @@ resources:
         depends_on: [vm-admin_net1_port]
         type: OS::Neutron::FloatingIP
         properties:
-            floating_network_id: { get_param: ExtNet_name }
+            floating_network: { get_param: ExtNet_name }
             port_id: { get_resource: vm-admin_net1_port }
             
     vm-admin_key:
@@ -293,6 +292,15 @@ resources:
             networks:
             - port: { get_resource: vm-admin_net1_port }
             - port: { get_resource: vm-admin_net2_port }
+            user_data_format: RAW
+            user_data: |
+                #!/bin/bash
+                ifconfig ens4 up
+                dhclient ens4                        
+                cat >>/etc/network/interfaces <<EOL
+                auto ens4
+                iface ens4 inet dhcp
+                EOL
 
     vm-postgres_net2_port:
         depends_on: [net2, icmp_security_group, postgres_security_group]
@@ -304,7 +312,7 @@ resources:
                 - { get_resource: icmp_security_group }
 
     vm-postgres:
-        depends_on: [vm-postgres_net2_port, vm-postgres_conf]
+        depends_on: [vm-postgres_net2_port]
         type: OS::Nova::Server
         properties:
             image: { get_param: vm-postgres_image }
@@ -316,12 +324,13 @@ resources:
                 str_replace:
                     template: |
                         #!/bin/bash
-                        sudo -u postgres psql -U postgres -c "CREATE USER $DB_USER PASSWORD '$DB_PASS'"
-                        sudo -u postgres psql -U postgres -c "CREATE DATABASE $DB_NAME OWNER $DB_USER"
+                        docker run --name pg -e POSTGRES_PASSWORD=$DB_PASS -e POSTGRES_USER=$DB_USER -e POSTGRES_DB=$DB_NAME -p=5432:5432 --restart=always -d postgres:alpine
                     params:
                         $DB_USER: { get_param: db_user }
                         $DB_PASS: { get_param: db_pass }
-                        $DB_NAME: { get_param: db_name }                
+                        $DB_NAME: { get_param: db_name }  
+
+                              
     
     web_LBaaS_pool:
         type: OS::Neutron::LBaaS::Pool
@@ -343,7 +352,7 @@ resources:
             vip_subnet: { get_resource: subnet1 }
 
     web-group:
-        depends_on: [subnet1, subnet2, icmp_security_group, postgres_security_group, http_security_group]
+        depends_on: [subnet1, subnet2, icmp_security_group, postgres_security_group, http_security_group, vm-postgres]
         type: OS::Heat::AutoScalingGroup
         properties:
             min_size: { get_param: min_web_server }
@@ -363,6 +372,12 @@ resources:
                     ssh_security_group: { get_resource: ssh_security_group }
                     protocol_port: { get_param: web_protocol_port }
                     pool: { get_resource: web_LBaaS_pool }
+                    db_name: { get_param: db_name }
+                    db_user: { get_param: db_user }
+                    db_pass: { get_param: db_pass }
+                    db_host: { get_attr: [vm-postgres, first_address] }
+                    db_port: { get_param: postgres_port }
+                    
 
     web-group_scaleup_policy:
         type: OS::Heat::ScalingPolicy
@@ -380,29 +395,13 @@ resources:
             cooldown: { get_param: web-group_scale_cooldown }
             scaling_adjustment: -1  
 
-    vm-postgres_conf:
-        type: OS::Heat::CloudConfig
+    web_LBaaS_floating_ip:
+        depends_on: [web_LBaaS]
+        type: OS::Neutron::FloatingIP
         properties:
-            cloud_config: 
-                manage_etc_hosts: true
-                runcmd:
-                    
-
-            
-outputs:
-    vm-admin_ip:
-        description: Direccion IP asignada a vm1
-        value: { get_attr: [vm-admin, first_address] }
+            floating_network: { get_param: ExtNet_name }
+            port_id: { get_attr: [web_LBaaS, vip_port_id ]}
         
-    vm-admin_private_key:
-        description: Clave privada
-        value: { get_attr: [vm-admin_key, private_key] }
+            
 
-    web-group_scaleup_url:
-        description: URL para aumentar el numero de servidores web
-        value: { get_attr: [web-group_scaleup_policy, signal_url]}
-
-    web-group_scaledown_url:
-        description: URL para aumentar el numero de servidores web
-        value: { get_attr: [web-group_scaledown_policy, signal_url]}
 

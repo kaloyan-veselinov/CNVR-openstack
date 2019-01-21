@@ -22,18 +22,18 @@ parameter_defaults:
     vm-admin_flavor: m1.smaller
     vm-admin_key_name: vm1
     postgres_port: 5432
-    vm-postgres_image: stack-vm-postgres-3zujfcdst4vx
+    vm-postgres_image: stack-vm-postgres-7hqbvyt6trlk
     vm-postgres_flavor: m1.smaller
     min_web_server: 3
     max_web_server: 3
-    vm-web_image: stack-vm-web-sjunninkaema 
+    vm-web_image: stack-vm-web-kw7e3dkbkbnt 
     vm-web_flavor: m1.smaller
     web-group_scale_cooldown: 60
     web_scale_avg_period: 60
     web_scaleup_thresh: 80
     web_scaledown_thresh: 30
-    web_protocol_port: 80
-    web_LBaaS_port: 80
+    web_protocol_port: 8000
+    web_LBaaS_port: 8000
     db_pass: asupersecretpassword
     db_name: CNVRdb
     db_user: test_user

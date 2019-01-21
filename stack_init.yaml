@@ -172,8 +172,9 @@ resources:
             cloud_config: 
                 manage_etc_hosts: true
                 packages:
-                - postgresql
-                - postgresql-contrib
+                - docker.io
+                runcmd: 
+                - docker pull postgres:alpine 
                
 outputs:
     vm-web_id:

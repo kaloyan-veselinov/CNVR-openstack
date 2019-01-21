@@ -45,6 +45,27 @@ parameters:
         type: number
         description: Web protocol port
 
+    db_user:
+        type: string
+        description: User of DB
+
+    db_name:
+        type: string
+        description: Name of DB
+
+    db_pass:
+        type: string
+        description: Password of DB
+
+    db_host:
+        type: string
+        description: Host of DB
+
+    db_port:
+        type: string
+        description: Port of DB
+
+
 resources:
     vm-web_net1_port:
         type: OS::Neutron::Port
@@ -72,11 +93,36 @@ resources:
                 - port: { get_resource: vm-web_net1_port }
                 - port: { get_resource: vm-web_net2_port }
             user_data_format: RAW
-            user_data: |
-                #!/bin/bash
-                python3 /web/manage.py migrate
-                python3 /web/manage.py runserver 
-		
+            user_data: 
+                str_replace:
+                    template: |
+                        #!/bin/bash
+                        ifconfig ens4 up
+                        dhclient ens4
+
+                        cat >/web/.env <<EOL
+                        export production=true                        
+                        export DB_ENGINE=django.db.backends.postgresql
+                        export DB_NAME=$DB_NAME
+                        export DB_USER=$DB_USER
+                        export DB_PASS=$DB_PASS
+                        export DB_SERVICE=$DB_HOST
+                        export DB_PORT=$DB_PORT
+                        EOL
+
+                        source /web/.env
+                        python3 /web/manage.py migrate
+                        python3 /web/manage.py runserver &
+                        cat >>/etc/network/interfaces <<EOL
+                        auto ens4
+                        iface ens4 inet dhcp
+                        EOL  
+                    params:
+                        $DB_USER: { get_param: db_user }
+                        $DB_NAME: { get_param: db_name }
+                        $DB_PASS: { get_param: db_pass }
+                        $DB_HOST: { get_param: db_host }
+                        $DB_PORT: { get_param: db_port }
 
     vm-web_pool_member:
         type: OS::Neutron::LBaaS::PoolMember
