@@ -18,22 +18,25 @@ parameter_defaults:
     http_security_group_name: sg_http
     postgres_security_group_name: sg_postgres
     icmp_security_group_name: sg_icmp
-    vm-admin_image: cirros-0.3.4-x86_64-vnx
-    vm-admin_flavor: m1.tiny
+    vm-admin_image: xenial-server-cloudimg-amd64-vnx
+    vm-admin_flavor: m1.smaller
     vm-admin_key_name: vm1
     postgres_port: 5432
-    vm-postgres_image: cirros-0.3.4-x86_64-vnx
-    vm-postgres_flavor: m1.tiny
+    vm-postgres_image: stack-vm-postgres-3zujfcdst4vx
+    vm-postgres_flavor: m1.smaller
     min_web_server: 3
     max_web_server: 3
-    vm-web_image: cirros-0.3.4-x86_64-vnx 
-    vm-web_flavor: m1.tiny
+    vm-web_image: stack-vm-web-sjunninkaema 
+    vm-web_flavor: m1.smaller
     web-group_scale_cooldown: 60
     web_scale_avg_period: 60
     web_scaleup_thresh: 80
     web_scaledown_thresh: 30
     web_protocol_port: 80
     web_LBaaS_port: 80
+    db_pass: asupersecretpassword
+    db_name: CNVRdb
+    db_user: test_user
 
 resource_registry:
     "OS::CNVR::WebServer": web_server.yaml

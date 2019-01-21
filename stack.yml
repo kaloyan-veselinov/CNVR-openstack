@@ -258,7 +258,41 @@ resources:
             flavor:  { get_param: vm-postgres_flavor }
             networks:
             - port: { get_resource: vm-postgres_net2_port }
-            
+
+    firewallruleSSHdeny:
+        type: OS::Neutron::FirewallRule
+        properties:
+            action: deny
+            description: "Denies all exterior traffic to admin"
+            destination_ip_address: { get_attr: [vm-admin, first_address] }
+
+    firewallruleSSHallow:
+        type: OS::Neutron::FirewallRule
+        properties:
+            action: allow
+            description: "Allows exterior on port 22"
+            destination_ip_address: { get_attr: [vm-admin, first_address] }
+            destination_port: 22
+            protocol: tcp
+
+    firewallInterior:
+        type: OS::Neutron::FirewallRule
+        properties:
+            action: allow
+            description: "Allows trafic from inside to all destination with all protocols"
+            source_ip_address: { get_param: subnet1_cidr }
+            protocol: any
+
+    firewall-policy: 
+        type: OS::Neutron::FirewallPolicy
+        properties: 
+            firewall_rules: [{ get_resource: firewallruleSSHdeny }, { get_resource: firewallruleSSHallow }, { get_resource: firewallInterior }]
+
+    firewall:
+        type: OS::Neutron::Firewall
+        properties:
+            firewall_policy_id: { get_resource: firewall-policy }
+
 outputs:
     vm-admin_ip:
         description: Direccion IP asignada a vm1

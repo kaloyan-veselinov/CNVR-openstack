@@ -142,6 +142,18 @@ parameters:
     web_LBaaS_port:
         type: number
         description: Port number for LBaaS
+
+    db_pass: 
+        type: string
+        description: Contraseña de la base de datos
+    
+    db_name:
+        type: string
+        description: Nombre de la base de datos
+
+    db_user:
+        type: string
+        description: Nombre de usuario para la base de datos
   
         
 resources:
@@ -292,13 +304,24 @@ resources:
                 - { get_resource: icmp_security_group }
 
     vm-postgres:
-        depends_on: [vm-postgres_net2_port]
+        depends_on: [vm-postgres_net2_port, vm-postgres_conf]
         type: OS::Nova::Server
         properties:
             image: { get_param: vm-postgres_image }
             flavor:  { get_param: vm-postgres_flavor }
             networks:
             - port: { get_resource: vm-postgres_net2_port }
+            user_data_format: RAW
+            user_data:
+                str_replace:
+                    template: |
+                        #!/bin/bash
+                        sudo -u postgres psql -U postgres -c "CREATE USER $DB_USER PASSWORD '$DB_PASS'"
+                        sudo -u postgres psql -U postgres -c "CREATE DATABASE $DB_NAME OWNER $DB_USER"
+                    params:
+                        $DB_USER: { get_param: db_user }
+                        $DB_PASS: { get_param: db_pass }
+                        $DB_NAME: { get_param: db_name }                
     
     web_LBaaS_pool:
         type: OS::Neutron::LBaaS::Pool
@@ -356,6 +379,14 @@ resources:
             auto_scaling_group_id: { get_resource: web-group }
             cooldown: { get_param: web-group_scale_cooldown }
             scaling_adjustment: -1  
+
+    vm-postgres_conf:
+        type: OS::Heat::CloudConfig
+        properties:
+            cloud_config: 
+                manage_etc_hosts: true
+                runcmd:
+                    
 
             
 outputs:

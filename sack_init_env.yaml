@@ -18,9 +18,9 @@ parameter_defaults:
     http_security_group_name: sg_http
     postgres_security_group_name: sg_postgres
     icmp_security_group_name: sg_icmp
-    vm-admin_image: xenial-server-cloudimg-amd64-vnx
+    vm-admin_image: cirros-0.3.4-x86_64-vnx
     vm-admin_flavor: m1.tiny
     vm-admin_key_name: vm1
     postgres_port: 5432
-    vm-postgres_image: xenial-server-cloudimg-amd64-vnx
+    vm-postgres_image: cirros-0.3.4-x86_64-vnx
     vm-postgres_flavor: m1.tiny

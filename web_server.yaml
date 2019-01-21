@@ -71,6 +71,12 @@ resources:
             networks:
                 - port: { get_resource: vm-web_net1_port }
                 - port: { get_resource: vm-web_net2_port }
+            user_data_format: RAW
+            user_data: |
+                #!/bin/bash
+                python3 /web/manage.py migrate
+                python3 /web/manage.py runserver 
+		
 
     vm-web_pool_member:
         type: OS::Neutron::LBaaS::PoolMember
