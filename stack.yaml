@@ -283,7 +283,7 @@ resources:
             save_private_key: true
             
     vm-admin:
-        depends_on: [vm-admin_key, vm-admin_net1_port, vm-admin_net2_port]
+        depends_on: [vm-admin_key, vm-admin_net1_port, vm-admin_net2_port, vm-postgres]
         type: OS::Nova::Server
         properties:
             image: { get_param: vm-admin_image }
@@ -293,14 +293,36 @@ resources:
             - port: { get_resource: vm-admin_net1_port }
             - port: { get_resource: vm-admin_net2_port }
             user_data_format: RAW
-            user_data: |
-                #!/bin/bash
-                ifconfig ens4 up
-                dhclient ens4                        
-                cat >>/etc/network/interfaces <<EOL
-                auto ens4
-                iface ens4 inet dhcp
-                EOL
+            user_data: 
+                str_replace:
+                    template: |
+                        #!/bin/bash                        
+                        cat >>/etc/network/interfaces <<EOL
+                        auto ens4
+                        iface ens4 inet dhcp
+                        EOL
+
+                        ifconfig ens4 up
+                        dhclient ens4
+
+                        cat >/web/.env <<EOL
+                        export production=true                        
+                        export DB_ENGINE=django.db.backends.postgresql
+                        export DB_NAME=$DB_NAME
+                        export DB_USER=$DB_USER
+                        export DB_PASS=$DB_PASS
+                        export DB_SERVICE=$DB_HOST
+                        export DB_PORT=$DB_PORT
+                        EOL
+                        
+                        source /web/.env
+                        python3 /web/manage.py migrate
+                    params:
+                        $DB_USER: { get_param: db_user }
+                        $DB_NAME: { get_param: db_name }
+                        $DB_PASS: { get_param: db_pass }
+                        $DB_HOST: { get_attr: [vm-postgres, first_address] }
+                        $DB_PORT: { get_param: postgres_port }
 
     vm-postgres_net2_port:
         depends_on: [net2, icmp_security_group, postgres_security_group]
@@ -330,8 +352,6 @@ resources:
                         $DB_PASS: { get_param: db_pass }
                         $DB_NAME: { get_param: db_name }  
 
-                              
-    
     web_LBaaS_pool:
         type: OS::Neutron::LBaaS::Pool
         properties:
@@ -340,6 +360,7 @@ resources:
             listener: { get_resource: web_LBaaS_listener }
 
     web_LBaaS_listener:
+        depends_on: [web_LBaaS]
         type: OS::Neutron::LBaaS::Listener
         properties:
             loadbalancer: { get_resource: web_LBaaS }
