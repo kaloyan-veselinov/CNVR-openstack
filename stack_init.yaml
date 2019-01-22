@@ -43,6 +43,10 @@ parameters:
         type: string
         description: Nombre del grupo de seguridad por acceso a ssh
 
+    http_security_group_name:
+        type: string
+        description: Nombre del grupo de seguridad por acceso a http
+
     vm-postgres_image:
         type: string
         description: Tipo de imagen para la vm de la base de datos
@@ -102,6 +106,17 @@ resources:
                 protocol: tcp 
                 port_range_min: 22 
                 port_range_max: 22
+
+    http_security_group:
+        type: OS::Neutron::SecurityGroup 
+        properties:
+            description: HTTP security group
+            name: { get_param: http_security_group_name }
+            rules:
+            -   remote_ip_prefix: 0.0.0.0/0 
+                protocol: tcp 
+                port_range_min: 80 
+                port_range_max: 80
        
     vm-postgres_net1_port:
         depends_on: [net1, ssh_security_group]
@@ -118,6 +133,7 @@ resources:
             network_id: { get_resource: net1 }
             security_groups: 
                 - { get_resource: ssh_security_group }
+                - { get_resource: http_security_group }
             
     vm-postgres_floating_ip:
         depends_on: [vm-postgres_net1_port]
@@ -162,9 +178,12 @@ resources:
                 manage_etc_hosts: true
                 packages:
                 - python3-pip
+                - nginx
                 runcmd:
                 - pip3 install Django psycopg2
                 - git clone https://github.com/kaloyan-veselinov/CNVR_django_demo.git /web
+                - ufw allow 'Nginx Full'
+                - systemctl start nginx
 
     vm-postgres_conf:
         type: OS::Heat::CloudConfig

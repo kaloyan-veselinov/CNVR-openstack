@@ -9,6 +9,7 @@ parameter_defaults:
     subnet1_start: 10.1.1.8        
     subnet1_end: 10.1.1.100    
     ssh_security_group_name: sg_ssh
+    http_security_group_name: sg_http
     vm-postgres_image: xenial-server-cloudimg-amd64-vnx
     vm-postgres_flavor: m1.smaller
     vm-web_image: xenial-server-cloudimg-amd64-vnx
