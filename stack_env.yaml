@@ -18,15 +18,15 @@ parameter_defaults:
     http_security_group_name: sg_http
     postgres_security_group_name: sg_postgres
     icmp_security_group_name: sg_icmp
-    vm-admin_image: stack-vm-web-a67cbdruo3ln
+    vm-admin_image:  stack-vm-web-xwvscx2jk4y7
     vm-admin_flavor: m1.smaller
     vm-admin_key_name: vm1
     postgres_port: 5432
-    vm-postgres_image: stack-vm-postgres-uebpvnl47anb
+    vm-postgres_image: stack-vm-postgres-5jrprwjwblmh
     vm-postgres_flavor: m1.smaller
     min_web_server: 3
     max_web_server: 3
-    vm-web_image: stack-vm-web-a67cbdruo3ln
+    vm-web_image:  stack-vm-web-xwvscx2jk4y7
     vm-web_flavor: m1.smaller
     web-group_scale_cooldown: 60
     web_scale_avg_period: 60

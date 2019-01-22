@@ -353,6 +353,7 @@ resources:
                         $DB_NAME: { get_param: db_name }  
 
     web_LBaaS_pool:
+        depends_on: [web_LBaaS_listener]
         type: OS::Neutron::LBaaS::Pool
         properties:
             lb_algorithm: ROUND_ROBIN
@@ -368,12 +369,13 @@ resources:
             protocol_port: { get_param: web_LBaaS_port }
 
     web_LBaaS:
+        depends_on: [subnet1]
         type: OS::Neutron::LBaaS::LoadBalancer
         properties:
             vip_subnet: { get_resource: subnet1 }
 
     web-group:
-        depends_on: [subnet1, subnet2, icmp_security_group, postgres_security_group, http_security_group, vm-postgres]
+        depends_on: [subnet1, subnet2, icmp_security_group, postgres_security_group, http_security_group, vm-postgres, web_LBaaS_pool]
         type: OS::Heat::AutoScalingGroup
         properties:
             min_size: { get_param: min_web_server }
