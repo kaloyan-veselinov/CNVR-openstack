@@ -120,7 +120,6 @@ resources:
                         DB_PORT=$DB_PORT
                         EOL
                         
-                        source /web/.env
                         cat >/etc/systemd/system/gunicorn.service <<EOL
                         [Unit]
                         Description=gunicorn daemon
@@ -150,7 +149,16 @@ resources:
                         
                         ln -s /etc/nginx/sites-available/cnvrdemo.conf /etc/nginx/sites-enabled/cnvrdemo.conf                      
                         systemctl restart nginx
-                        
+
+                        export ALLOWED_HOSTS=$LBaaS_floating_ip
+                        export production=true                        
+                        export DB_ENGINE=django.db.backends.postgresql
+                        export DB_NAME=$DB_NAME
+                        export DB_USER=$DB_USER
+                        export DB_PASS=$DB_PASS
+                        export DB_SERVICE=$DB_HOST
+                        export DB_PORT=$DB_PORT
+                        python3 /web/manage.py collectstatic                        
                     params:
                         $DB_USER: { get_param: db_user }
                         $DB_NAME: { get_param: db_name }

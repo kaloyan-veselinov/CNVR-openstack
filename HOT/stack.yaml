@@ -288,7 +288,7 @@ resources:
             save_private_key: true
             
     vm-admin:
-        depends_on: [vm-admin_key, vm-admin_net1_port, vm-admin_net2_port, vm-postgres]
+        depends_on: [vm-admin_key, vm-admin_net1_port, vm-admin_net2_port, vm-postgres, web_LBaaS_floating_ip]
         type: OS::Nova::Server
         properties:
             image: { get_param: vm-admin_image }
@@ -311,6 +311,7 @@ resources:
                         dhclient ens4
 
                         cat >/web/.env <<EOL
+                        export ALLOWED_HOSTS=localhost
                         export production=true                        
                         export DB_ENGINE=django.db.backends.postgresql
                         export DB_NAME=$DB_NAME
@@ -323,6 +324,7 @@ resources:
                         source /web/.env
                         python3 /web/manage.py migrate
                         sed -i 's/Port 22/Port $SSH_PORT/g' /etc/ssh/sshd_config
+                        systemctl restart sshd
                     params:
                         $DB_USER: { get_param: db_user }
                         $DB_NAME: { get_param: db_name }
@@ -330,6 +332,7 @@ resources:
                         $DB_HOST: { get_attr: [vm-postgres, first_address] }
                         $DB_PORT: { get_param: postgres_port }
                         $SSH_PORT: { get_param: ssh_port }
+                        $LBaaS_floating_ip: { get_attr: [web_LBaaS_floating_ip, floating_ip_address ]}
 
     vm-postgres_net2_port:
         depends_on: [net2, icmp_security_group, postgres_security_group]
@@ -382,7 +385,7 @@ resources:
             vip_subnet: { get_resource: subnet1 }
 
     web-group:
-        depends_on: [subnet1, subnet2, icmp_security_group, postgres_security_group, http_security_group, vm-postgres, web_LBaaS_pool, web_LBaaS_floating_ip]
+        depends_on: [subnet1, subnet2, icmp_security_group, postgres_security_group, http_security_group, vm-postgres, web_LBaaS_pool, web_LBaaS_floating_ip, vm-postgres, vm-admin]
         type: OS::Heat::AutoScalingGroup
         properties:
             min_size: { get_param: min_web_server }
@@ -432,6 +435,38 @@ resources:
         properties:
             floating_network: { get_param: ExtNet_name }
             port_id: { get_attr: [web_LBaaS, vip_port_id ]}
+
+    firewallruleSSHallow:
+        depends_on: [vm-admin_net1_port]
+        type: OS::Neutron::FirewallRule
+        properties:
+            action: allow
+            description: "Allows from exterior on ssh port of admin"
+            destination_ip_address: { get_attr: [vm-admin_net1_port, fixed_ips, 0, ip_address]  }
+            destination_port: { get_param: ssh_port } 
+            protocol: tcp
+
+    firewallruleWWWallow:
+        depends_on: [web_LBaaS]
+        type: OS::Neutron::FirewallRule
+        properties:
+            action: allow
+            description: "Allows traffic from exterior on port 80 of balanceador"
+            destination_ip_address: { get_attr: [web_LBaaS, vip_address] }
+            destination_port: { get_param: web_protocol_port }
+            protocol: tcp
+
+    firewall-policy:
+        depends_on: [firewallruleWWWallow, firewallruleSSHallow]
+        type: OS::Neutron::FirewallPolicy
+        properties: 
+            firewall_rules: [{ get_resource: firewallruleWWWallow }, { get_resource: firewallruleSSHallow }]
+
+    firewall:
+        depends_on: [firewall-policy]
+        type: OS::Neutron::Firewall
+        properties:
+            firewall_policy_id: { get_resource: firewall-policy }
         
 outputs:
     LBaaS_floating_ip:
