@@ -153,10 +153,7 @@ parameters:
 
     db_user:
         type: string
-        description: Nombre de usuario para la base de datos
-
-
-  
+        description: Nombre de usuario para la base de datos  
         
 resources:
     net1:
@@ -400,6 +397,7 @@ resources:
                     db_pass: { get_param: db_pass }
                     db_host: { get_attr: [vm-postgres, first_address] }
                     db_port: { get_param: postgres_port }
+                    LBaaS_floating_ip: { get_attr: [web_LBaaS_floating_ip, floating_ip_address ]}
                     
 
     web-group_scaleup_policy:
