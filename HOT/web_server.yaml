@@ -138,7 +138,7 @@ resources:
                             listen 80;
                             server_name $LBaaS_floating_ip localhost;
                             location /static/ {
-                                root /web;
+                                root /var/www/cnvrdemo;
                             }
                             location / {
                                 include proxy_params;
