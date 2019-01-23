@@ -423,6 +423,17 @@ resources:
             floating_network: { get_param: ExtNet_name }
             port_id: { get_attr: [web_LBaaS, vip_port_id ]}
         
-            
+outputs:
+    LBaaS_floating_ip:
+        description: External IP address of the load balancer
+        value: { get_attr: [web_LBaaS_floating_ip, floating_ip_address ]}
+
+    vm-admin_floating_ip:
+        description: External IP address of the administration VM
+        value: { get_attr: [vm-admin_floating_ip, floating_ip_address ]}
+
+    vm-admin_private_key:
+        description: Private key for SSH access to the administration VM
+        value: { get_attr: [vm-admin, private_key] }             
 
 
