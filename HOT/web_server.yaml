@@ -158,7 +158,7 @@ resources:
                         export DB_PASS=$DB_PASS
                         export DB_SERVICE=$DB_HOST
                         export DB_PORT=$DB_PORT
-                        python3 /web/manage.py collectstatic                        
+                        python3 /web/manage.py collectstatic --no-input                        
                     params:
                         $DB_USER: { get_param: db_user }
                         $DB_NAME: { get_param: db_name }
