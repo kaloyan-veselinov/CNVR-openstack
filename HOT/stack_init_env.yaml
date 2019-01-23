@@ -1,0 +1,16 @@
+parameter_defaults:
+    ExtNet_name: ExtNet  
+    r1_name: r1          
+    net1_name: net1    
+    subnet1_name: subnet1    
+    subnet1_gateway: 10.1.1.1
+    subnet1_dns: 8.8.8.8
+    subnet1_cidr: 10.1.1.0/24
+    subnet1_start: 10.1.1.8        
+    subnet1_end: 10.1.1.100    
+    ssh_security_group_name: sg_ssh
+    http_security_group_name: sg_http
+    vm-postgres_image: xenial-server-cloudimg-amd64-vnx
+    vm-postgres_flavor: m1.smaller
+    vm-web_image: xenial-server-cloudimg-amd64-vnx
+    vm-web_flavor: m1.smaller

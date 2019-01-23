@@ -323,7 +323,6 @@ resources:
                         source /web/.env
                         python3 /web/manage.py migrate
                         sed -i 's/Port 22/Port $SSH_PORT/g' /etc/ssh/sshd_config
-                        systemctl restart sshd
                     params:
                         $DB_USER: { get_param: db_user }
                         $DB_NAME: { get_param: db_name }

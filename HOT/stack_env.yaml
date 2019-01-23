@@ -1,0 +1,43 @@
+parameter_defaults:
+    ExtNet_name: ExtNet  
+    r1_name: r1          
+    net1_name: net1    
+    subnet1_name: subnet1    
+    subnet1_gateway: 10.1.1.1
+    subnet1_dns: 8.8.8.8
+    subnet1_cidr: 10.1.1.0/24
+    subnet1_start: 10.1.1.8        
+    subnet1_end: 10.1.1.100    
+    net2_name: net2   
+    subnet2_name: subnet2    
+    subnet2_gateway: 10.1.2.1
+    subnet2_cidr: 10.1.2.0/24
+    subnet2_start: 10.1.2.8        
+    subnet2_end: 10.1.2.100  
+    ssh_security_group_name: sg_ssh
+    http_security_group_name: sg_http
+    postgres_security_group_name: sg_postgres
+    icmp_security_group_name: sg_icmp
+    vm-admin_image:  stack-vm-web-llck4xfjoeet
+    vm-admin_flavor: m1.smaller
+    vm-admin_key_name: vm1
+    postgres_port: 5432
+    vm-postgres_image: stack-vm-postgres-rll7tjupph7b
+    vm-postgres_flavor: m1.smaller
+    min_web_server: 3
+    max_web_server: 3
+    vm-web_image:  stack-vm-web-llck4xfjoeet
+    vm-web_flavor: m1.smaller
+    web-group_scale_cooldown: 60
+    web_scale_avg_period: 60
+    web_scaleup_thresh: 80
+    web_scaledown_thresh: 30
+    web_protocol_port: 80
+    web_LBaaS_port: 80
+    db_pass: asupersecretpassword
+    db_name: CNVRdb
+    db_user: test_user
+    ssh_port: 2018
+
+resource_registry:
+    "OS::CNVR::WebServer": web_server.yaml
