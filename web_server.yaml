@@ -69,7 +69,6 @@ parameters:
         type: string
         description: Outside address for load balancer
 
-
 resources:
     vm-web_net1_port:
         type: OS::Neutron::Port
@@ -111,7 +110,8 @@ resources:
                         dhclient ens4
 
                         cat >/web/.env <<EOL
-                        production=true                        
+                        production=true
+                        ALLOWED_HOSTS=$LBaaS_floating_ip                        
                         DB_ENGINE=django.db.backends.postgresql
                         DB_NAME=$DB_NAME
                         DB_USER=$DB_USER

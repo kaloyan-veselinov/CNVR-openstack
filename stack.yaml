@@ -372,7 +372,7 @@ resources:
             vip_subnet: { get_resource: subnet1 }
 
     web-group:
-        depends_on: [subnet1, subnet2, icmp_security_group, postgres_security_group, http_security_group, vm-postgres, web_LBaaS_pool]
+        depends_on: [subnet1, subnet2, icmp_security_group, postgres_security_group, http_security_group, vm-postgres, web_LBaaS_pool, web_LBaaS_floating_ip]
         type: OS::Heat::AutoScalingGroup
         properties:
             min_size: { get_param: min_web_server }
@@ -434,6 +434,6 @@ outputs:
 
     vm-admin_private_key:
         description: Private key for SSH access to the administration VM
-        value: { get_attr: [vm-admin, private_key] }             
+        value: { get_attr: [vm-admin_key, private_key] }             
 
 
